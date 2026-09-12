@@ -35,6 +35,10 @@ jobs:
       - name: Test
         run: go test ./...
 
+      - name: Race Test (linux)
+        if: matrix.os == 'linux'
+        run: go test -race ./...
+
       - name: Build
         shell: bash
         run: |
