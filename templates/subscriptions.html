@@ -14,37 +14,38 @@
       {{ if .SubDomain }}
       订阅域名: {{ .SubDomain }} — 链接格式: https://{{ .SubDomain }}/sub/{token}
       {{ else }}
-      未设置订阅域名，请在系统设置中配置 sub_domain 以生成完整订阅链接
+      未设置订阅域名，链接将使用当前访问地址 (可在系统设置中配置 sub_domain)
       {{ end }}
     </span>
   </div>
   <div class="panel-body p-0">
     <table class="table">
       <thead>
-        <tr><th>ID</th><th>用户</th><th>套餐</th><th>Token</th><th>订阅内容 (Base64)</th><th>操作</th></tr>
+        <tr><th>ID</th><th>用户</th><th>套餐</th><th>订阅链接</th><th>操作</th></tr>
       </thead>
       <tbody>
         {{ range .Users }}
-        {{ $sub := index $.Subs .ID }}
         <tr>
           <td>#{{ .ID }}</td>
           <td>{{ .Email }}</td>
           <td>{{ if .PlanName }}{{ .PlanName }}{{ else }}-{{ end }}</td>
-          <td><code class="token">{{ .Token }}</code></td>
           <td>
-            {{ if and .Enabled $sub }}
-            <code class="sub-preview">{{ subPreview $sub }}...</code>
+            {{ if .Enabled }}
+            <code class="token" id="subUrl{{ .ID }}">{{ .Token }}</code>
             {{ else }}
             <span class="muted">已禁用</span>
             {{ end }}
           </td>
           <td class="actions">
             {{ if .Enabled }}
-            <button class="btn-mini" onclick="copySubById({{ .ID }})">复制订阅</button>
+            <button class="btn-mini" onclick="copySubUrl('{{ .Token }}')">复制链接</button>
+            <button class="btn-mini" onclick="copySubById({{ .ID }})">复制内容</button>
             <button class="btn-mini" onclick="downloadSub({{ .ID }})">下载</button>
             {{ end }}
           </td>
         </tr>
+        {{ else }}
+        <tr><td colspan="5" class="muted center">暂无用户</td></tr>
         {{ end }}
       </tbody>
     </table>
@@ -55,10 +56,11 @@
   <div class="panel-header"><h3>使用说明</h3></div>
   <div class="panel-body">
     <ol class="help-list">
-      <li>每个用户拥有独立的订阅链接: <code>https://{订阅域名}/sub/{token}</code></li>
+      <li>每个用户拥有独立的订阅链接: <code>{协议}://{面板地址}/sub/{token}</code>, 点击"复制链接"即可获取</li>
       <li>在 Clash / V2rayN / Shadowrocket 等客户端中粘贴订阅链接即可自动导入全部启用节点</li>
+      <li>订阅响应包含流量与到期信息 (subscription-userinfo), 客户端可显示剩余流量</li>
       <li>面板自动根据用户的协议 (vless/vmess/trojan) 生成对应格式的节点配置</li>
-      <li>禁用用户或节点后，其配置会自动从订阅中移除</li>
+      <li>禁用用户或节点后, 订阅返回 404 / 配置自动从订阅中移除</li>
     </ol>
   </div>
 </div>

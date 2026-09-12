@@ -297,6 +297,8 @@ func (s *Server) routes() *http.ServeMux {
 	mux.HandleFunc("POST /api/cert/generate", s.requireLogin(s.apiGenerateCert))
 	mux.HandleFunc("POST /api/logs/clear", s.requireLogin(s.apiClearLogs))
 
+	mux.HandleFunc("GET /sub/{token}", s.subscriptionByToken)
+
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
 	return mux
 }
@@ -580,7 +582,7 @@ func (s *Server) subscriptionsPage(w http.ResponseWriter, r *http.Request) {
 
 	s.render(w, r, "subscriptions", &PageData{
 		Title: "订阅管理", Active: "subscriptions", Users: users, Subs: subs, SubDomain: subDomain,
-		ExtraScript: template.JS("const subsMap = " + string(jsJSON(subs)) + ";"),
+		ExtraScript: template.JS("const subDomainVal = " + string(jsJSON(subDomain)) + ";"),
 	})
 }
 
@@ -631,4 +633,47 @@ func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, r, "settings", &PageData{
 		Title: "系统设置", Active: "settings", Settings: settings,
 	})
+}
+
+// subscriptionByToken 公开订阅端点: GET /sub/{token}, 供客户端直接订阅, 无需登录。
+func (s *Server) subscriptionByToken(w http.ResponseWriter, r *http.Request) {
+	token := r.PathValue("token")
+	s.db.mu.RLock()
+	var user *User
+	for i := range s.db.Data.Users {
+		if s.db.Data.Users[i].Token == token {
+			user = &s.db.Data.Users[i]
+			break
+		}
+	}
+	if user == nil || !user.Enabled {
+		s.db.mu.RUnlock()
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	nodes := make([]Node, 0, len(s.db.Data.Nodes))
+	for _, n := range s.db.Data.Nodes {
+		if n.Enabled {
+			nodes = append(nodes, n)
+		}
+	}
+	sub := buildSubscription(nodes, *user)
+	used := user.UsedBytes
+	total := int64(user.TrafficGB) * 1024 * 1024 * 1024
+	expireUnix := ""
+	if user.ExpireAt != "" {
+		if t, err := time.ParseInLocation("2006-01-02 15:04:05", user.ExpireAt, time.Local); err == nil {
+			expireUnix = strconv.FormatInt(t.Unix(), 10)
+		}
+	}
+	host := r.Host
+	s.db.mu.RUnlock()
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("subscription-userinfo",
+		fmt.Sprintf("upload=0; download=%d; total=%d; expire=%s", used, total, expireUnix))
+	w.Header().Set("profile-update-interval", "12")
+	w.Header().Set("profile-web-page-url", host)
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(sub))
 }

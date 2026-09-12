@@ -371,6 +371,19 @@ async function deleteNode(id) {
 }
 
 /* ================= 订阅 ================= */
+function buildSubUrl(token) {
+  const host = (typeof subDomainVal !== "undefined" && subDomainVal) || location.host;
+  return location.protocol + "//" + host + "/sub/" + token;
+}
+
+function copySubUrl(token) {
+  const url = buildSubUrl(token);
+  navigator.clipboard.writeText(url).then(
+    () => toast("订阅链接已复制: " + url),
+    () => toast("复制失败，请手动复制: " + url, "error")
+  );
+}
+
 async function copySubById(id) {
   try {
     const res = await fetch(`/api/subscription/${id}`);

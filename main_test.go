@@ -275,6 +275,62 @@ func TestCertAndTLS(t *testing.T) {
 	}
 }
 
+func TestSubscriptionByToken(t *testing.T) {
+	s := newTestServer(t)
+	ts := httptest.NewServer(s.routes())
+	defer ts.Close()
+
+	client := newClient()
+	resp, err := client.PostForm(ts.URL+"/login", url.Values{"username": {"admin"}, "password": {"admin123"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+
+	body, _ := json.Marshal(map[string]any{"email": "sub@test.com", "protocol": "vless", "enabled": 1})
+	out := apiReq(t, client, "POST", ts.URL+"/api/users", body)
+	if out["success"] != true {
+		t.Fatalf("create user: %v", out)
+	}
+
+	s.db.mu.RLock()
+	token := s.db.Data.Users[0].Token
+	s.db.mu.RUnlock()
+
+	// 公开访问 (无登录 Cookie): 正常返回订阅
+	anon := newClient()
+	r, err := anon.Get(ts.URL + "/sub/" + token)
+	if err != nil {
+		t.Fatal(err)
+	}
+	content, _ := readBody(r)
+	if r.StatusCode != http.StatusOK || content == "" {
+		t.Fatalf("public sub failed: %d", r.StatusCode)
+	}
+	if ui := r.Header.Get("subscription-userinfo"); !strings.Contains(ui, "total=") {
+		t.Fatalf("missing userinfo header: %q", ui)
+	}
+
+	// 错误 token -> 404
+	r, _ = anon.Get(ts.URL + "/sub/nonexistent")
+	r.Body.Close()
+	if r.StatusCode != http.StatusNotFound {
+		t.Fatalf("bad token should 404, got %d", r.StatusCode)
+	}
+
+	// 禁用用户 -> 404
+	body, _ = json.Marshal(map[string]any{"enabled": 0})
+	out = apiReq(t, client, "PUT", ts.URL+"/api/users/1", body)
+	if out["success"] != true {
+		t.Fatalf("disable user: %v", out)
+	}
+	r, _ = anon.Get(ts.URL + "/sub/" + token)
+	r.Body.Close()
+	if r.StatusCode != http.StatusNotFound {
+		t.Fatalf("disabled user should 404, got %d", r.StatusCode)
+	}
+}
+
 func TestPanelPortSetting(t *testing.T) {
 	s := newTestServer(t)
 	ts := httptest.NewServer(s.routes())
