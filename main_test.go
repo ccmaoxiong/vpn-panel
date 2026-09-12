@@ -275,6 +275,45 @@ func TestCertAndTLS(t *testing.T) {
 	}
 }
 
+func TestPanelPortSetting(t *testing.T) {
+	s := newTestServer(t)
+	ts := httptest.NewServer(s.routes())
+	defer ts.Close()
+
+	client := newClient()
+	resp, err := client.PostForm(ts.URL+"/login", url.Values{"username": {"admin"}, "password": {"admin123"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+
+	// valid port
+	body, _ := json.Marshal(map[string]any{"panel_port": "8443"})
+	out := apiReq(t, client, "POST", ts.URL+"/api/settings", body)
+	if out["success"] != true {
+		t.Fatalf("save port: %v", out)
+	}
+	if s.db.getSetting("panel_port", "") != "8443" {
+		t.Fatal("panel_port not saved")
+	}
+
+	// invalid ports rejected
+	for _, bad := range []string{"0", "65536", "abc", "-1"} {
+		body, _ = json.Marshal(map[string]any{"panel_port": bad})
+		out = apiReq(t, client, "POST", ts.URL+"/api/settings", body)
+		if out["success"] != false {
+			t.Fatalf("port %s should fail: %v", bad, out)
+		}
+	}
+
+	// empty port clears (fallback to env)
+	body, _ = json.Marshal(map[string]any{"panel_port": ""})
+	out = apiReq(t, client, "POST", ts.URL+"/api/settings", body)
+	if out["success"] != true || s.db.getSetting("panel_port", "") != "" {
+		t.Fatalf("clear port: %v", out)
+	}
+}
+
 func TestGenerateSelfSigned(t *testing.T) {
 	cert, key, err := generateSelfSigned("")
 	if err != nil {

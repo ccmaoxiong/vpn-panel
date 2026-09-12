@@ -14,6 +14,10 @@
         <input type="text" id="subDomain" class="input" placeholder="sub.example.com" value="{{ index .Settings "sub_domain" }}">
         <div class="muted small">设置后订阅链接格式为: https://{域名}/sub/{token}</div>
       </label>
+      <label>面板监听端口
+        <input type="number" id="panelPort" class="input" min="1" max="65535" placeholder="5000" value="{{ index .Settings "panel_port" }}">
+        <div class="muted small">当前监听: {{ .PanelPort }}。留空使用环境变量 PORT 或默认 5000; 修改后重启面板生效</div>
+      </label>
       <label>流量重置周期
         <select id="resetCycle" class="input">
           <option value="monthly" {{ if eq (index .Settings "traffic_reset_cycle") "monthly" }}selected{{ end }}>每月</option>

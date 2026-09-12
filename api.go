@@ -70,6 +70,7 @@ type settingsRequest struct {
 	SiteName          *string `json:"site_name"`
 	SubDomain         *string `json:"sub_domain"`
 	TrafficResetCycle *string `json:"traffic_reset_cycle"`
+	PanelPort         *string `json:"panel_port"`
 	TLSCert           *string `json:"tls_cert"`
 	TLSKey            *string `json:"tls_key"`
 	TLSEnabled        *string `json:"tls_enabled"`
@@ -701,6 +702,16 @@ func (s *Server) apiSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	s.db.mu.Lock()
 	cur := s.db.Data.Settings
+	if req.PanelPort != nil {
+		if p := strings.TrimSpace(*req.PanelPort); p != "" {
+			n, err := strconv.Atoi(p)
+			if err != nil || n < 1 || n > 65535 {
+				s.db.mu.Unlock()
+				writeJSON(w, http.StatusBadRequest, failJSON("端口必须是 1-65535 的数字"))
+				return
+			}
+		}
+	}
 	prospectiveEnabled := cur["tls_enabled"]
 	if req.TLSEnabled != nil {
 		prospectiveEnabled = *req.TLSEnabled
@@ -733,6 +744,9 @@ func (s *Server) apiSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.TrafficResetCycle != nil {
 		s.db.setSettingLocked("traffic_reset_cycle", *req.TrafficResetCycle)
+	}
+	if req.PanelPort != nil {
+		s.db.setSettingLocked("panel_port", strings.TrimSpace(*req.PanelPort))
 	}
 	if req.TLSCert != nil {
 		s.db.setSettingLocked("tls_cert", *req.TLSCert)

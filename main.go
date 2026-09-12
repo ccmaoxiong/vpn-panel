@@ -72,13 +72,24 @@ type PageData struct {
 	Logs []OpLog
 
 	// settings
-	Settings map[string]string
+	Settings  map[string]string
+	PanelPort string
 }
 
 type Server struct {
 	db   *DB
 	sess *sessionStore
 	tmpl map[string]*template.Template
+	host string
+	port string
+}
+
+func hostFromEnv() string {
+	host := os.Getenv("HOST")
+	if host == "" {
+		return "127.0.0.1"
+	}
+	return host
 }
 
 func main() {
@@ -91,14 +102,16 @@ func main() {
 		log.Fatalf("初始化数据失败: %v", err)
 	}
 	s := &Server{db: db, sess: newSessionStore(), tmpl: parseTemplates()}
-	port := os.Getenv("PORT")
+	// 端口优先级: 面板设置 > 环境变量 PORT > 默认 5000
+	port := db.getSetting("panel_port", "")
+	if port == "" {
+		port = os.Getenv("PORT")
+	}
 	if port == "" {
 		port = "5000"
 	}
-	host := os.Getenv("HOST")
-	if host == "" {
-		host = "127.0.0.1"
-	}
+	s.host, s.port = hostFromEnv(), port
+	host := s.host
 	handler := s.routes()
 
 	// HTTPS 模式: 配置了有效 TLS 证书则启用
@@ -352,6 +365,7 @@ func (s *Server) logAction(r *http.Request, action, detail string) {
 func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, data *PageData) {
 	data.SiteName = s.db.getSetting("site_name", "VPN 管理面板")
 	data.Version = appVersion
+	data.PanelPort = s.port
 	if data.Admin == nil {
 		data.Admin = s.currentAdmin(r)
 	}

@@ -454,10 +454,11 @@ async function saveSettings() {
     await api("/api/settings", "POST", {
       site_name: document.getElementById("siteName").value.trim(),
       sub_domain: document.getElementById("subDomain").value.trim(),
+      panel_port: document.getElementById("panelPort").value.trim(),
       traffic_reset_cycle: document.getElementById("resetCycle").value,
     });
-    toast("设置已保存");
-    setTimeout(() => location.reload(), 600);
+    toast("设置已保存" + (document.getElementById("panelPort").value.trim() ? " (端口重启后生效)" : ""));
+    setTimeout(() => location.reload(), 800);
   } catch (e) {
     toast(e.message, "error");
   }
