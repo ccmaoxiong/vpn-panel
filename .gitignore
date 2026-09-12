@@ -14,6 +14,11 @@ data.json.tmp
 .vscode/
 *.iml
 
+# Python 残留
+__pycache__/
+*.pyc
+*.db
+
 # 系统文件
 .DS_Store
 Thumbs.db
