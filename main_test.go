@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"net/http"
 	"net/http/cookiejar"
@@ -216,6 +217,74 @@ func TestAPIFlow(t *testing.T) {
 	out = apiReq(t, client, "DELETE", ts.URL+"/api/nodes/1", nil)
 	if out["success"] != true {
 		t.Fatalf("delete node: %v", out)
+	}
+}
+
+func TestCertAndTLS(t *testing.T) {
+	s := newTestServer(t)
+	ts := httptest.NewServer(s.routes())
+	defer ts.Close()
+
+	client := newClient()
+	resp, err := client.PostForm(ts.URL+"/login", url.Values{"username": {"admin"}, "password": {"admin123"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+
+	// self-signed cert generation
+	body, _ := json.Marshal(map[string]any{"hosts": "example.com,127.0.0.1"})
+	out := apiReq(t, client, "POST", ts.URL+"/api/cert/generate", body)
+	if out["success"] != true {
+		t.Fatalf("generate cert: %v", out)
+	}
+	cert, _ := out["cert"].(string)
+	key, _ := out["key"].(string)
+	if !strings.Contains(cert, "BEGIN CERTIFICATE") || !strings.Contains(key, "PRIVATE KEY") {
+		t.Fatal("generated cert/key invalid")
+	}
+
+	// enable TLS with the generated pair
+	body, _ = json.Marshal(map[string]any{
+		"tls_enabled": "1", "tls_cert": cert, "tls_key": key, "tls_redirect_http": "1",
+	})
+	out = apiReq(t, client, "POST", ts.URL+"/api/settings", body)
+	if out["success"] != true {
+		t.Fatalf("enable tls: %v", out)
+	}
+
+	// invalid cert must be rejected
+	body, _ = json.Marshal(map[string]any{"tls_cert": "not-a-cert"})
+	out = apiReq(t, client, "POST", ts.URL+"/api/settings", body)
+	if out["success"] != false {
+		t.Fatalf("invalid cert should fail: %v", out)
+	}
+
+	// enabling without key must be rejected
+	body, _ = json.Marshal(map[string]any{"tls_enabled": "1", "tls_cert": cert, "tls_key": ""})
+	out = apiReq(t, client, "POST", ts.URL+"/api/settings", body)
+	if out["success"] != false {
+		t.Fatalf("enable tls without key should fail: %v", out)
+	}
+
+	// disable again (cleanup)
+	body, _ = json.Marshal(map[string]any{"tls_enabled": "0"})
+	out = apiReq(t, client, "POST", ts.URL+"/api/settings", body)
+	if out["success"] != true {
+		t.Fatalf("disable tls: %v", out)
+	}
+}
+
+func TestGenerateSelfSigned(t *testing.T) {
+	cert, key, err := generateSelfSigned("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(cert, "BEGIN CERTIFICATE") || !strings.Contains(key, "BEGIN RSA PRIVATE KEY") {
+		t.Fatal("missing PEM markers")
+	}
+	if _, err := tls.X509KeyPair([]byte(cert), []byte(key)); err != nil {
+		t.Fatalf("generated pair invalid: %v", err)
 	}
 }
 

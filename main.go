@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"embed"
 	"encoding/json"
 	"fmt"
@@ -98,9 +99,44 @@ func main() {
 	if host == "" {
 		host = "127.0.0.1"
 	}
+	handler := s.routes()
+
+	// HTTPS 模式: 配置了有效 TLS 证书则启用
+	if db.getSetting("tls_enabled", "") == "1" {
+		cert, key := db.getSetting("tls_cert", ""), db.getSetting("tls_key", "")
+		if pair, err := tls.X509KeyPair([]byte(cert), []byte(key)); err == nil {
+			srv := &http.Server{
+				Addr:    host + ":" + port,
+				Handler: handler,
+				TLSConfig: &tls.Config{
+					Certificates: []tls.Certificate{pair},
+				},
+			}
+			log.Printf("* VPN 管理面板已启动 (HTTPS): https://%s:%s", host, port)
+			log.Printf("* 默认账号: admin / admin123")
+			if port == "443" && db.getSetting("tls_redirect_http", "1") == "1" {
+				go func() {
+					redirector := &http.Server{
+						Addr: host + ":80",
+						Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+							http.Redirect(w, r, "https://"+r.Host+r.URL.RequestURI(), http.StatusMovedPermanently)
+						}),
+					}
+					log.Printf("* HTTP 80 -> HTTPS 重定向已启用")
+					redirector.ListenAndServe()
+				}()
+			}
+			if err := srv.ListenAndServeTLS("", ""); err != nil {
+				log.Fatal(err)
+			}
+			return
+		}
+		log.Printf("警告: TLS 证书无效, 回退为 HTTP: %v", err)
+	}
+
 	log.Printf("* VPN 管理面板已启动: http://%s:%s", host, port)
 	log.Printf("* 默认账号: admin / admin123")
-	if err := http.ListenAndServe(host+":"+port, s.routes()); err != nil {
+	if err := http.ListenAndServe(host+":"+port, handler); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -245,6 +281,7 @@ func (s *Server) routes() *http.ServeMux {
 	mux.HandleFunc("GET /api/subscription/{id}", s.requireLogin(s.apiSubscription))
 	mux.HandleFunc("GET /api/subscription/all", s.requireLogin(s.apiSubscriptionAll))
 	mux.HandleFunc("POST /api/settings", s.requireLogin(s.apiSettings))
+	mux.HandleFunc("POST /api/cert/generate", s.requireLogin(s.apiGenerateCert))
 	mux.HandleFunc("POST /api/logs/clear", s.requireLogin(s.apiClearLogs))
 
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))

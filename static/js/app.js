@@ -476,3 +476,29 @@ async function changePassword() {
     toast(e.message, "error");
   }
 }
+
+async function saveTlsSettings() {
+  try {
+    const res = await api("/api/settings", "POST", {
+      tls_enabled: document.getElementById("tlsEnabled").checked ? "1" : "0",
+      tls_cert: document.getElementById("tlsCert").value.trim(),
+      tls_key: document.getElementById("tlsKey").value.trim(),
+      tls_redirect_http: document.getElementById("tlsRedirect").checked ? "1" : "0",
+    });
+    toast(res.msg + ", 重启面板后生效");
+  } catch (e) {
+    toast(e.message, "error");
+  }
+}
+
+async function generateCert() {
+  const hosts = document.getElementById("certHosts").value.trim();
+  try {
+    const res = await api("/api/cert/generate", "POST", { hosts });
+    document.getElementById("tlsCert").value = res.cert;
+    document.getElementById("tlsKey").value = res.key;
+    toast("自签名证书已生成 (10 年有效期)");
+  } catch (e) {
+    toast(e.message, "error");
+  }
+}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -69,7 +70,15 @@ type settingsRequest struct {
 	SiteName          *string `json:"site_name"`
 	SubDomain         *string `json:"sub_domain"`
 	TrafficResetCycle *string `json:"traffic_reset_cycle"`
+	TLSCert           *string `json:"tls_cert"`
+	TLSKey            *string `json:"tls_key"`
+	TLSEnabled        *string `json:"tls_enabled"`
+	TLSRedirectHTTP   *string `json:"tls_redirect_http"`
 	NewPassword       string  `json:"new_password"`
+}
+
+type certRequest struct {
+	Hosts string `json:"hosts"`
 }
 
 func findPlanLocked(d *Data, id int) *Plan {
@@ -691,6 +700,31 @@ func (s *Server) apiSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.db.mu.Lock()
+	cur := s.db.Data.Settings
+	prospectiveEnabled := cur["tls_enabled"]
+	if req.TLSEnabled != nil {
+		prospectiveEnabled = *req.TLSEnabled
+	}
+	prospectiveCert := cur["tls_cert"]
+	if req.TLSCert != nil {
+		prospectiveCert = *req.TLSCert
+	}
+	prospectiveKey := cur["tls_key"]
+	if req.TLSKey != nil {
+		prospectiveKey = *req.TLSKey
+	}
+	if prospectiveEnabled == "1" {
+		if prospectiveCert == "" || prospectiveKey == "" {
+			s.db.mu.Unlock()
+			writeJSON(w, http.StatusBadRequest, failJSON("启用 HTTPS 需要同时提供证书和私钥"))
+			return
+		}
+		if _, err := tls.X509KeyPair([]byte(prospectiveCert), []byte(prospectiveKey)); err != nil {
+			s.db.mu.Unlock()
+			writeJSON(w, http.StatusBadRequest, failJSON("证书或私钥无效: "+err.Error()))
+			return
+		}
+	}
 	if req.SiteName != nil {
 		s.db.setSettingLocked("site_name", *req.SiteName)
 	}
@@ -699,6 +733,18 @@ func (s *Server) apiSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.TrafficResetCycle != nil {
 		s.db.setSettingLocked("traffic_reset_cycle", *req.TrafficResetCycle)
+	}
+	if req.TLSCert != nil {
+		s.db.setSettingLocked("tls_cert", *req.TLSCert)
+	}
+	if req.TLSKey != nil {
+		s.db.setSettingLocked("tls_key", *req.TLSKey)
+	}
+	if req.TLSEnabled != nil {
+		s.db.setSettingLocked("tls_enabled", *req.TLSEnabled)
+	}
+	if req.TLSRedirectHTTP != nil {
+		s.db.setSettingLocked("tls_redirect_http", *req.TLSRedirectHTTP)
 	}
 	if req.NewPassword != "" {
 		if len(req.NewPassword) < 6 {
@@ -721,6 +767,21 @@ func (s *Server) apiSettings(w http.ResponseWriter, r *http.Request) {
 
 	s.logAction(r, "修改设置", "保存了系统设置")
 	writeJSON(w, http.StatusOK, okJSON("设置已保存"))
+}
+
+func (s *Server) apiGenerateCert(w http.ResponseWriter, r *http.Request) {
+	var req certRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, failJSON("请求格式错误"))
+		return
+	}
+	cert, key, err := generateSelfSigned(req.Hosts)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, failJSON("证书生成失败: "+err.Error()))
+		return
+	}
+	s.logAction(r, "生成证书", "生成了自签名 SSL 证书")
+	writeJSON(w, http.StatusOK, map[string]any{"success": true, "cert": cert, "key": key})
 }
 
 func (s *Server) apiClearLogs(w http.ResponseWriter, r *http.Request) {
