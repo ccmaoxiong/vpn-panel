@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"html/template"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -18,8 +17,7 @@ func newTestServer(t *testing.T) *Server {
 	if err != nil {
 		t.Fatalf("newDB: %v", err)
 	}
-	s := &Server{db: db, sess: newSessionStore()}
-	s.tmpl = template.Must(template.New("").Funcs(funcMap).ParseFS(webFS, "templates/*.html"))
+	s := &Server{db: db, sess: newSessionStore(), tmpl: parseTemplates()}
 	return s
 }
 

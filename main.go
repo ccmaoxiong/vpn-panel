@@ -36,13 +36,12 @@ type TrafficLogView struct {
 }
 
 type PageData struct {
-	Title        string
-	SiteName     string
-	Admin        *Admin
-	Active       string
-	ContentBlock string
-	ExtraScript  template.JS
-	LoginError   string
+	Title       string
+	SiteName    string
+	Admin       *Admin
+	Active      string
+	ExtraScript template.JS
+	LoginError  string
 
 	// dashboard
 	TotalUsers  int
@@ -75,7 +74,7 @@ type PageData struct {
 type Server struct {
 	db   *DB
 	sess *sessionStore
-	tmpl *template.Template
+	tmpl map[string]*template.Template
 }
 
 func main() {
@@ -87,8 +86,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("初始化数据失败: %v", err)
 	}
-	s := &Server{db: db, sess: newSessionStore()}
-	s.tmpl = template.Must(template.New("").Funcs(funcMap).ParseFS(webFS, "templates/*.html"))
+	s := &Server{db: db, sess: newSessionStore(), tmpl: parseTemplates()}
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "5000"
@@ -102,6 +100,17 @@ func main() {
 	if err := http.ListenAndServe(host+":"+port, s.routes()); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func parseTemplates() map[string]*template.Template {
+	names := []string{"dashboard", "users", "plans", "nodes", "subscriptions", "traffic", "logs", "settings"}
+	sets := make(map[string]*template.Template, len(names)+1)
+	for _, n := range names {
+		sets[n] = template.Must(template.New("").Funcs(funcMap).ParseFS(webFS,
+			"templates/base.html", "templates/"+n+".html"))
+	}
+	sets["login"] = template.Must(template.New("").Funcs(funcMap).ParseFS(webFS, "templates/base.html"))
+	return sets
 }
 
 var funcMap = template.FuncMap{
@@ -305,7 +314,12 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, dat
 	if data.Admin == nil {
 		data.Admin = s.currentAdmin(r)
 	}
-	if err := s.tmpl.ExecuteTemplate(w, name, data); err != nil {
+	t := s.tmpl[name]
+	entry := "base"
+	if name == "login" {
+		entry = "login"
+	}
+	if err := t.ExecuteTemplate(w, entry, data); err != nil {
 		log.Printf("模板渲染失败 %s: %v", name, err)
 	}
 }
@@ -426,9 +440,8 @@ func (s *Server) dashboardPage(w http.ResponseWriter, r *http.Request) {
 	}
 	s.db.mu.RUnlock()
 
-	s.render(w, r, "page_dashboard", &PageData{
-		Title: "仪表盘", Active: "dashboard", ContentBlock: "content_dashboard",
-		TotalUsers: totalUsers, ActiveUsers: activeUsers, TotalNodes: totalNodes,
+	s.render(w, r, "dashboard", &PageData{
+		Title: "仪表盘", Active: "dashboard", TotalUsers: totalUsers, ActiveUsers: activeUsers, TotalNodes: totalNodes,
 		UsedBytes: used, TodayBytes: todayUsed,
 		RecentUsers: recentUsers, RecentLogs: recentLogs,
 	})
@@ -454,9 +467,8 @@ func (s *Server) usersPage(w http.ResponseWriter, r *http.Request) {
 	}
 	s.db.mu.RUnlock()
 
-	s.render(w, r, "page_users", &PageData{
-		Title: "用户管理", Active: "users", ContentBlock: "content_users",
-		Users: users, Plans: plans, Nodes: nodes,
+	s.render(w, r, "users", &PageData{
+		Title: "用户管理", Active: "users", Users: users, Plans: plans, Nodes: nodes,
 	})
 }
 
@@ -474,8 +486,8 @@ func (s *Server) plansPage(w http.ResponseWriter, r *http.Request) {
 	}
 	s.db.mu.RUnlock()
 
-	s.render(w, r, "page_plans", &PageData{
-		Title: "套餐管理", Active: "plans", ContentBlock: "content_plans", Plans: plans,
+	s.render(w, r, "plans", &PageData{
+		Title: "套餐管理", Active: "plans", Plans: plans,
 	})
 }
 
@@ -485,8 +497,8 @@ func (s *Server) nodesPage(w http.ResponseWriter, r *http.Request) {
 	copy(nodes, s.db.Data.Nodes)
 	s.db.mu.RUnlock()
 
-	s.render(w, r, "page_nodes", &PageData{
-		Title: "节点管理", Active: "nodes", ContentBlock: "content_nodes", Nodes: nodes,
+	s.render(w, r, "nodes", &PageData{
+		Title: "节点管理", Active: "nodes", Nodes: nodes,
 	})
 }
 
@@ -511,9 +523,8 @@ func (s *Server) subscriptionsPage(w http.ResponseWriter, r *http.Request) {
 	subDomain := s.db.Data.Settings["sub_domain"]
 	s.db.mu.RUnlock()
 
-	s.render(w, r, "page_subscriptions", &PageData{
-		Title: "订阅管理", Active: "subscriptions", ContentBlock: "content_subscriptions",
-		Users: users, Subs: subs, SubDomain: subDomain,
+	s.render(w, r, "subscriptions", &PageData{
+		Title: "订阅管理", Active: "subscriptions", Users: users, Subs: subs, SubDomain: subDomain,
 		ExtraScript: template.JS("const subsMap = " + string(jsJSON(subs)) + ";"),
 	})
 }
@@ -536,9 +547,8 @@ func (s *Server) trafficPage(w http.ResponseWriter, r *http.Request) {
 	}
 	s.db.mu.RUnlock()
 
-	s.render(w, r, "page_traffic", &PageData{
-		Title: "流量统计", Active: "traffic", ContentBlock: "content_traffic",
-		Users: users, TrafficLogs: logs,
+	s.render(w, r, "traffic", &PageData{
+		Title: "流量统计", Active: "traffic", Users: users, TrafficLogs: logs,
 	})
 }
 
@@ -550,8 +560,8 @@ func (s *Server) logsPage(w http.ResponseWriter, r *http.Request) {
 	}
 	s.db.mu.RUnlock()
 
-	s.render(w, r, "page_logs", &PageData{
-		Title: "操作日志", Active: "logs", ContentBlock: "content_logs", Logs: logs,
+	s.render(w, r, "logs", &PageData{
+		Title: "操作日志", Active: "logs", Logs: logs,
 	})
 }
 
@@ -563,7 +573,7 @@ func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
 	}
 	s.db.mu.RUnlock()
 
-	s.render(w, r, "page_settings", &PageData{
-		Title: "系统设置", Active: "settings", ContentBlock: "content_settings", Settings: settings,
+	s.render(w, r, "settings", &PageData{
+		Title: "系统设置", Active: "settings", Settings: settings,
 	})
 }

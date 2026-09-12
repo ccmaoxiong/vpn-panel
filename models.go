@@ -139,11 +139,11 @@ func (db *DB) seed() {
 		{ID: 2, Name: "标准套餐", TrafficGB: 200, DurationDays: 30, Price: 19.9, DeviceLimit: 5, Enabled: true, CreatedAt: now},
 		{ID: 3, Name: "高级套餐", TrafficGB: 500, DurationDays: 90, Price: 39.9, DeviceLimit: 0, Enabled: true, CreatedAt: now},
 	}
-	db.Data.NextUserID = 1
-	db.Data.NextNodeID = 2
-	db.Data.NextPlanID = 4
-	db.Data.NextTrafficID = 1
-	db.Data.NextOpLogID = 1
+	db.Data.NextUserID = 0
+	db.Data.NextNodeID = 1
+	db.Data.NextPlanID = 3
+	db.Data.NextTrafficID = 0
+	db.Data.NextOpLogID = 0
 }
 
 func (db *DB) saveLocked() error {
