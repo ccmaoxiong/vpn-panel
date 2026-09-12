@@ -19,6 +19,8 @@ import (
 //go:embed templates static
 var webFS embed.FS
 
+const appVersion = "v0.1.1"
+
 type UserView struct {
 	User
 	PlanName string
@@ -38,6 +40,7 @@ type TrafficLogView struct {
 type PageData struct {
 	Title       string
 	SiteName    string
+	Version     string
 	Admin       *Admin
 	Active      string
 	ExtraScript template.JS
@@ -311,6 +314,7 @@ func (s *Server) logAction(r *http.Request, action, detail string) {
 
 func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, data *PageData) {
 	data.SiteName = s.db.getSetting("site_name", "VPN 管理面板")
+	data.Version = appVersion
 	if data.Admin == nil {
 		data.Admin = s.currentAdmin(r)
 	}
