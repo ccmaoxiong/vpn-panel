@@ -4,7 +4,25 @@
 
 ## 一键安装
 
-### Linux (Debian / Ubuntu / CentOS 等)
+### ☁️ 云服务器一条命令安装 (推荐)
+
+直接下载 GitHub Releases 预编译二进制,无需安装 Go:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/ccmaoxiong/vpn-panel/main/cloud-install.sh)
+```
+
+```bash
+bash <(curl -fsSL .../cloud-install.sh) update     # 更新到最新版
+bash <(curl -fsSL .../cloud-install.sh) uninstall  # 卸载 (保留数据)
+bash <(curl -fsSL .../cloud-install.sh) status     # 查看状态
+PORT=8080 bash <(curl -fsSL .../cloud-install.sh)  # 自定义端口
+```
+
+- 自动检测架构 (amd64/arm64),优先下载 Releases 二进制,失败自动回退源码编译
+- Releases 由 GitHub Actions 自动构建: 推送 `v*` 标签触发,或在 Actions 页面手动运行 `release` 工作流
+
+### Linux (从源码克隆安装)
 
 ```bash
 git clone https://github.com/ccmaoxiong/vpn-panel.git
