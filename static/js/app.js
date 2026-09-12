@@ -87,7 +87,7 @@ async function saveUser() {
   const data = {
     email,
     protocol: document.getElementById("userProtocol").value,
-    plan_id: document.getElementById("userPlan").value || null,
+    plan_id: parseInt(document.getElementById("userPlan").value) || null,
     traffic_gb: parseInt(document.getElementById("userTraffic").value) || 0,
     duration_days: parseInt(document.getElementById("userDuration").value) || 0,
     device_limit: parseInt(document.getElementById("userDevice").value) || 0,
