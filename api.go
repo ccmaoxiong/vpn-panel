@@ -34,14 +34,16 @@ func parseID(r *http.Request) (int, bool) {
 }
 
 type userRequest struct {
-	Email        string `json:"email"`
-	Protocol     string `json:"protocol"`
-	PlanID       *int   `json:"plan_id"`
-	TrafficGB    int    `json:"traffic_gb"`
-	DurationDays int    `json:"duration_days"`
-	DeviceLimit  int    `json:"device_limit"`
-	Password     string `json:"password"`
-	Enabled      *int   `json:"enabled"`
+	Email         string `json:"email"`
+	Protocol      string `json:"protocol"`
+	SsMethod      string `json:"ss_method"`
+	VmessSecurity string `json:"vmess_security"`
+	PlanID        *int   `json:"plan_id"`
+	TrafficGB     int    `json:"traffic_gb"`
+	DurationDays  int    `json:"duration_days"`
+	DeviceLimit   int    `json:"device_limit"`
+	Password      string `json:"password"`
+	Enabled       *int   `json:"enabled"`
 }
 
 type planRequest struct {
@@ -62,6 +64,10 @@ type nodeRequest struct {
 	SNI           string `json:"sni"`
 	Flow          string `json:"flow"`
 	AllowInsecure *int   `json:"allow_insecure"`
+	RealityPbk    string `json:"reality_pbk"`
+	ShortID       string `json:"short_id"`
+	SpiderX       string `json:"spider_x"`
+	Fingerprint   string `json:"fp"`
 	Remarks       string `json:"remarks"`
 	Enabled       *int   `json:"enabled"`
 }
@@ -154,18 +160,20 @@ func (s *Server) apiCreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	s.db.Data.NextUserID++
 	s.db.Data.Users = append(s.db.Data.Users, User{
-		ID:          s.db.Data.NextUserID,
-		Email:       email,
-		UUID:        newUUID(),
-		Password:    password,
-		Protocol:    protocol,
-		PlanID:      planID,
-		TrafficGB:   trafficGB,
-		ExpireAt:    expireAt,
-		DeviceLimit: deviceLimit,
-		Enabled:     enabled,
-		Token:       newToken(),
-		CreatedAt:   time.Now().Format("2006-01-02 15:04:05"),
+		ID:            s.db.Data.NextUserID,
+		Email:         email,
+		UUID:          newUUID(),
+		Password:      password,
+		Protocol:      protocol,
+		SsMethod:      req.SsMethod,
+		VmessSecurity: req.VmessSecurity,
+		PlanID:        planID,
+		TrafficGB:     trafficGB,
+		ExpireAt:      expireAt,
+		DeviceLimit:   deviceLimit,
+		Enabled:       enabled,
+		Token:         newToken(),
+		CreatedAt:     time.Now().Format("2006-01-02 15:04:05"),
 	})
 	s.db.saveLocked()
 	s.db.mu.Unlock()
@@ -206,6 +214,8 @@ func (s *Server) apiUpdateUser(w http.ResponseWriter, r *http.Request) {
 	if req.Protocol != "" {
 		u.Protocol = req.Protocol
 	}
+	u.SsMethod = req.SsMethod
+	u.VmessSecurity = req.VmessSecurity
 	if req.Enabled != nil {
 		u.Enabled = *req.Enabled != 0
 	}
@@ -510,6 +520,10 @@ func (s *Server) apiCreateNode(w http.ResponseWriter, r *http.Request) {
 		SNI:           sni,
 		Flow:          req.Flow,
 		AllowInsecure: allowInsecure,
+		RealityPbk:    req.RealityPbk,
+		ShortID:       req.ShortID,
+		SpiderX:       req.SpiderX,
+		Fingerprint:   req.Fingerprint,
 		Remarks:       req.Remarks,
 		Enabled:       enabled,
 		CreatedAt:     time.Now().Format("2006-01-02 15:04:05"),
@@ -563,6 +577,10 @@ func (s *Server) apiUpdateNode(w http.ResponseWriter, r *http.Request) {
 	node.SNI = req.SNI
 	node.Flow = req.Flow
 	node.Remarks = req.Remarks
+	node.RealityPbk = req.RealityPbk
+	node.ShortID = req.ShortID
+	node.SpiderX = req.SpiderX
+	node.Fingerprint = req.Fingerprint
 	if req.AllowInsecure != nil {
 		node.AllowInsecure = *req.AllowInsecure != 0
 	}

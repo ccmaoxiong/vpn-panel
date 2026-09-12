@@ -18,6 +18,8 @@
             data-port="{{ .Port }}" data-network="{{ .Network }}"
             data-security="{{ .Security }}" data-sni="{{ .SNI }}"
             data-flow="{{ .Flow }}" data-allow-insecure="{{ if .AllowInsecure }}1{{ else }}0{{ end }}"
+            data-pbk="{{ .RealityPbk }}" data-sid="{{ .ShortID }}"
+            data-spx="{{ .SpiderX }}" data-fp="{{ .Fingerprint }}"
             data-remarks="{{ .Remarks }}" data-enabled="{{ if .Enabled }}1{{ else }}0{{ end }}">
           <td>#{{ .ID }}</td>
           <td>{{ .Name }}</td>
@@ -76,15 +78,39 @@
           <select id="nodeNetwork" class="input">
             <option value="tcp">TCP</option>
             <option value="ws" selected>WebSocket</option>
+            <option value="httpupgrade">HTTPUpgrade</option>
             <option value="grpc">gRPC</option>
             <option value="kcp">mKCP</option>
           </select>
         </label>
         <label>安全类型
-          <select id="nodeSecurity" class="input">
+          <select id="nodeSecurity" class="input" onchange="toggleRealityFields()">
             <option value="tls" selected>TLS</option>
             <option value="reality">Reality</option>
             <option value="none">None</option>
+          </select>
+        </label>
+      </div>
+      <div class="form-row" id="realityFields" style="display:none">
+        <label>Reality 公钥 (pbk)
+          <input type="text" id="nodePbk" class="input" placeholder="服务器 x25519 公钥 (必填)">
+        </label>
+        <label>Short ID (sid)
+          <input type="text" id="nodeSid" class="input" placeholder="如 ab12cd">
+        </label>
+      </div>
+      <div class="form-row" id="realityFields2" style="display:none">
+        <label>SpiderX (spx)
+          <input type="text" id="nodeSpx" class="input" value="/">
+        </label>
+        <label>指纹 (fp)
+          <select id="nodeFp" class="input">
+            <option value="chrome">chrome</option>
+            <option value="firefox">firefox</option>
+            <option value="safari">safari</option>
+            <option value="ios">ios</option>
+            <option value="edge">edge</option>
+            <option value="random">random</option>
           </select>
         </label>
       </div>

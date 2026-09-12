@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/cookiejar"
@@ -272,6 +273,57 @@ func TestCertAndTLS(t *testing.T) {
 	out = apiReq(t, client, "POST", ts.URL+"/api/settings", body)
 	if out["success"] != true {
 		t.Fatalf("disable tls: %v", out)
+	}
+}
+
+func TestProtocolLinks(t *testing.T) {
+	n := Node{Name: "HK", Address: "hk.example.com", Port: 443, Network: "ws", Security: "tls"}
+	u := User{Email: "u@x.com", UUID: "00000000-0000-4000-8000-000000000001", Password: "pass123"}
+
+	// SS
+	u.Protocol = "ss"
+	u.SsMethod = "aes-256-gcm"
+	link := buildUserLinks(n, u)
+	if !strings.HasPrefix(link, "ss://") {
+		t.Fatalf("bad ss link: %s", link)
+	}
+	info := strings.SplitN(strings.TrimPrefix(link, "ss://"), "@", 2)[0]
+	dec, err := base64.RawURLEncoding.DecodeString(info)
+	if err != nil || string(dec) != "aes-256-gcm:pass123" {
+		t.Fatalf("ss userinfo wrong: %s", dec)
+	}
+
+	// VMess scy
+	u.Protocol = "vmess"
+	u.VmessSecurity = "chacha20-poly1305"
+	link = buildUserLinks(n, u)
+	raw, err := base64.URLEncoding.DecodeString(strings.TrimPrefix(link, "vmess://"))
+	if err != nil {
+		t.Fatalf("vmess decode: %v", err)
+	}
+	var cfg map[string]string
+	json.Unmarshal(raw, &cfg)
+	if cfg["scy"] != "chacha20-poly1305" {
+		t.Fatalf("vmess scy wrong: %v", cfg)
+	}
+
+	// VLESS reality params
+	n2 := Node{Name: "HK2", Address: "1.2.3.4", Port: 8443, Security: "reality",
+		RealityPbk: "pubkey", ShortID: "ab12", SpiderX: "/x", Fingerprint: "firefox"}
+	u.Protocol = "vless"
+	link = buildUserLinks(n2, u)
+	for _, want := range []string{"security=reality", "pbk=pubkey", "sid=ab12", "spx=%2Fx", "fp=firefox"} {
+		if !strings.Contains(link, want) {
+			t.Fatalf("reality link missing %s: %s", want, link)
+		}
+	}
+
+	// httpupgrade
+	n3 := Node{Name: "HK3", Address: "x.com", Port: 443, Network: "httpupgrade", Security: "tls"}
+	u.Protocol = "trojan"
+	link = buildUserLinks(n3, u)
+	if !strings.Contains(link, "type=httpupgrade") || !strings.Contains(link, "path=%2F") {
+		t.Fatalf("httpupgrade link wrong: %s", link)
 	}
 }
 

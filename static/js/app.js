@@ -42,11 +42,19 @@ function copyText(inputId) {
 }
 
 /* ================= 用户管理 ================= */
+function toggleProtocolFields() {
+  const p = document.getElementById("userProtocol").value;
+  document.getElementById("ssMethodRow").style.display = p === "ss" ? "" : "none";
+  document.getElementById("vmessSecurityRow").style.display = p === "vmess" ? "" : "none";
+}
+
 function openUserModal(id) {
   const modal = document.getElementById("userModal");
   document.getElementById("userId").value = "";
   document.getElementById("userEmail").value = "";
   document.getElementById("userProtocol").value = "vless";
+  document.getElementById("userSsMethod").value = "aes-128-gcm";
+  document.getElementById("userVmessSecurity").value = "auto";
   document.getElementById("userPlan").value = "";
   document.getElementById("userTraffic").value = 50;
   document.getElementById("userDuration").value = 30;
@@ -63,6 +71,8 @@ function openUserModal(id) {
       const emailInput = document.getElementById("userEmail");
       emailInput.value = tr.querySelector("td:nth-child(2)").textContent.trim();
       document.getElementById("userProtocol").value = d.protocol;
+      document.getElementById("userSsMethod").value = d.ssMethod || "aes-128-gcm";
+      document.getElementById("userVmessSecurity").value = d.vmessSecurity || "auto";
       document.getElementById("userPlan").value = d.planId;
       document.getElementById("userTraffic").value = d.trafficGb;
       document.getElementById("userDuration").value = "";
@@ -77,6 +87,7 @@ function openUserModal(id) {
       }
     }
   }
+  toggleProtocolFields();
   openModal("userModal");
 }
 
@@ -87,6 +98,8 @@ async function saveUser() {
   const data = {
     email,
     protocol: document.getElementById("userProtocol").value,
+    ss_method: document.getElementById("userSsMethod").value,
+    vmess_security: document.getElementById("userVmessSecurity").value,
     plan_id: parseInt(document.getElementById("userPlan").value) || null,
     traffic_gb: parseInt(document.getElementById("userTraffic").value) || 0,
     duration_days: parseInt(document.getElementById("userDuration").value) || 0,
@@ -295,6 +308,12 @@ async function deletePlan(id) {
 }
 
 /* ================= 节点管理 ================= */
+function toggleRealityFields() {
+  const isReality = document.getElementById("nodeSecurity").value === "reality";
+  document.getElementById("realityFields").style.display = isReality ? "" : "none";
+  document.getElementById("realityFields2").style.display = isReality ? "" : "none";
+}
+
 function openNodeModal(id) {
   document.getElementById("nodeId").value = "";
   document.getElementById("nodeName").value = "";
@@ -304,6 +323,10 @@ function openNodeModal(id) {
   document.getElementById("nodeNetwork").value = "ws";
   document.getElementById("nodeSecurity").value = "tls";
   document.getElementById("nodeFlow").value = "";
+  document.getElementById("nodePbk").value = "";
+  document.getElementById("nodeSid").value = "";
+  document.getElementById("nodeSpx").value = "/";
+  document.getElementById("nodeFp").value = "chrome";
   document.getElementById("nodeRemarks").value = "";
   document.getElementById("nodeAllowInsecure").checked = false;
   document.getElementById("nodeEnabled").checked = true;
@@ -321,11 +344,16 @@ function openNodeModal(id) {
       document.getElementById("nodeNetwork").value = d.network;
       document.getElementById("nodeSecurity").value = d.security;
       document.getElementById("nodeFlow").value = d.flow;
+      document.getElementById("nodePbk").value = d.pbk;
+      document.getElementById("nodeSid").value = d.sid;
+      document.getElementById("nodeSpx").value = d.spx || "/";
+      document.getElementById("nodeFp").value = d.fp || "chrome";
       document.getElementById("nodeRemarks").value = d.remarks;
       document.getElementById("nodeAllowInsecure").checked = d.allowInsecure === "1";
       document.getElementById("nodeEnabled").checked = d.enabled === "1";
     }
   }
+  toggleRealityFields();
   openModal("nodeModal");
 }
 
@@ -342,6 +370,10 @@ async function saveNode() {
     network: document.getElementById("nodeNetwork").value,
     security: document.getElementById("nodeSecurity").value,
     flow: document.getElementById("nodeFlow").value,
+    reality_pbk: document.getElementById("nodePbk").value.trim(),
+    short_id: document.getElementById("nodeSid").value.trim(),
+    spider_x: document.getElementById("nodeSpx").value.trim(),
+    fp: document.getElementById("nodeFp").value,
     remarks: document.getElementById("nodeRemarks").value.trim(),
     allow_insecure: document.getElementById("nodeAllowInsecure").checked ? 1 : 0,
     enabled: document.getElementById("nodeEnabled").checked ? 1 : 0,

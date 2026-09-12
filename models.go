@@ -24,6 +24,10 @@ type Node struct {
 	SNI           string `json:"sni"`
 	Flow          string `json:"flow"`
 	AllowInsecure bool   `json:"allow_insecure"`
+	RealityPbk    string `json:"reality_pbk"`
+	ShortID       string `json:"short_id"`
+	SpiderX       string `json:"spider_x"`
+	Fingerprint   string `json:"fingerprint"`
 	Remarks       string `json:"remarks"`
 	Enabled       bool   `json:"enabled"`
 	CreatedAt     string `json:"created_at"`
@@ -41,19 +45,21 @@ type Plan struct {
 }
 
 type User struct {
-	ID          int    `json:"id"`
-	Email       string `json:"email"`
-	UUID        string `json:"uuid"`
-	Password    string `json:"password"`
-	Protocol    string `json:"protocol"`
-	PlanID      int    `json:"plan_id"`
-	TrafficGB   int    `json:"traffic_gb"`
-	UsedBytes   int64  `json:"used_bytes"`
-	ExpireAt    string `json:"expire_at"`
-	DeviceLimit int    `json:"device_limit"`
-	Enabled     bool   `json:"enabled"`
-	Token       string `json:"token"`
-	CreatedAt   string `json:"created_at"`
+	ID            int    `json:"id"`
+	Email         string `json:"email"`
+	UUID          string `json:"uuid"`
+	Password      string `json:"password"`
+	Protocol      string `json:"protocol"`
+	SsMethod      string `json:"ss_method"`
+	VmessSecurity string `json:"vmess_security"`
+	PlanID        int    `json:"plan_id"`
+	TrafficGB     int    `json:"traffic_gb"`
+	UsedBytes     int64  `json:"used_bytes"`
+	ExpireAt      string `json:"expire_at"`
+	DeviceLimit   int    `json:"device_limit"`
+	Enabled       bool   `json:"enabled"`
+	Token         string `json:"token"`
+	CreatedAt     string `json:"created_at"`
 }
 
 type TrafficLog struct {

@@ -145,6 +145,7 @@ body {
 .badge-vless { background: rgba(59,130,246,.15); color: #60a5fa; }
 .badge-vmess { background: rgba(139,92,246,.15); color: #a78bfa; }
 .badge-trojan { background: rgba(16,185,129,.15); color: #34d399; }
+.badge-ss { background: rgba(245,158,11,.15); color: #fbbf24; }
 .badge-gray { background: rgba(139,147,167,.15); color: var(--text-muted); }
 .badge-green { background: rgba(16,185,129,.15); color: var(--green); }
 .badge-purple { background: rgba(139,92,246,.15); color: var(--purple); }

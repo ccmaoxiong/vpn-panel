@@ -23,6 +23,7 @@
         <tr data-id="{{ .ID }}" data-email="{{ .Email }}"
             data-protocol="{{ .Protocol }}" data-plan-id="{{ nz .PlanID }}"
             data-traffic-gb="{{ .TrafficGB }}" data-device-limit="{{ .DeviceLimit }}"
+            data-ss-method="{{ .SsMethod }}" data-vmess-security="{{ .VmessSecurity }}"
             data-enabled="{{ if .Enabled }}1{{ else }}0{{ end }}" data-expire-at="{{ .ExpireAt }}">
           <td>#{{ .ID }}</td>
           <td>{{ .Email }}</td>
@@ -85,10 +86,11 @@
       </label>
       <div class="form-row">
         <label>协议
-          <select id="userProtocol" class="input">
+          <select id="userProtocol" class="input" onchange="toggleProtocolFields()">
             <option value="vless">VLESS</option>
             <option value="vmess">VMess</option>
             <option value="trojan">Trojan</option>
+            <option value="ss">Shadowsocks</option>
           </select>
         </label>
         <label>套餐
@@ -97,6 +99,28 @@
             {{ range .Plans }}
             <option value="{{ .ID }}">{{ .Name }} ({{ .TrafficGB }}GB/{{ .DurationDays }}天)</option>
             {{ end }}
+          </select>
+        </label>
+      </div>
+      <div class="form-row" id="ssMethodRow" style="display:none">
+        <label>SS 加密方式
+          <select id="userSsMethod" class="input">
+            <option value="aes-128-gcm">aes-128-gcm</option>
+            <option value="aes-256-gcm">aes-256-gcm</option>
+            <option value="chacha20-ietf-poly1305">chacha20-ietf-poly1305</option>
+            <option value="2022-blake3-aes-128-gcm">2022-blake3-aes-128-gcm</option>
+            <option value="2022-blake3-aes-256-gcm">2022-blake3-aes-256-gcm</option>
+            <option value="none">none</option>
+          </select>
+        </label>
+      </div>
+      <div class="form-row" id="vmessSecurityRow" style="display:none">
+        <label>VMess 加密 (scy)
+          <select id="userVmessSecurity" class="input">
+            <option value="auto">auto</option>
+            <option value="aes-128-gcm">aes-128-gcm</option>
+            <option value="chacha20-poly1305">chacha20-poly1305</option>
+            <option value="none">none</option>
           </select>
         </label>
       </div>
@@ -112,8 +136,8 @@
         <label>设备限制 (0 为不限)
           <input type="number" id="userDevice" class="input" value="0" min="0">
         </label>
-        <label>trojan 密码 (可选)
-          <input type="text" id="userPassword" class="input" placeholder="留空自动生成">
+        <label>密码 (trojan / ss, 留空自动生成)
+          <input type="text" id="userPassword" class="input" placeholder="2022 加密请填 base64 PSK">
         </label>
       </div>
       <label class="checkbox-label">

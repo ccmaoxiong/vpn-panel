@@ -63,7 +63,21 @@ func buildVlessConfig(n Node, u User) string {
 	}
 	switch security {
 	case "reality":
-		params = append(params, "pbk=", "fp=chrome", "sni="+url.QueryEscape(sni), "sid=", "spx=%2F")
+		params = append(params, "sni="+url.QueryEscape(sni))
+		if n.RealityPbk != "" {
+			params = append(params, "pbk="+url.QueryEscape(n.RealityPbk))
+		}
+		fp := n.Fingerprint
+		if fp == "" {
+			fp = "chrome"
+		}
+		params = append(params, "fp="+url.QueryEscape(fp))
+		if n.ShortID != "" {
+			params = append(params, "sid="+url.QueryEscape(n.ShortID))
+		}
+		if n.SpiderX != "" {
+			params = append(params, "spx="+url.QueryEscape(n.SpiderX))
+		}
 	case "tls":
 		params = append(params, "sni="+url.QueryEscape(sni))
 		if n.AllowInsecure {
@@ -73,10 +87,10 @@ func buildVlessConfig(n Node, u User) string {
 	if n.Flow != "" {
 		params = append(params, "flow="+url.QueryEscape(n.Flow))
 	}
-	if netw == "ws" {
+	switch netw {
+	case "ws", "httpupgrade":
 		params = append(params, "path=%2F")
-	}
-	if netw == "grpc" {
+	case "grpc":
 		params = append(params, "mode=gun")
 	}
 	name := url.QueryEscape(n.Name + " - " + u.Email)
@@ -96,6 +110,10 @@ func buildVmessConfig(n Node, u User) string {
 	if sni == "" {
 		sni = n.Address
 	}
+	scy := u.VmessSecurity
+	if scy == "" {
+		scy = "auto"
+	}
 	cfg := map[string]string{
 		"v":    "2",
 		"ps":   n.Name + " - " + u.Email,
@@ -103,7 +121,7 @@ func buildVmessConfig(n Node, u User) string {
 		"port": strconv.Itoa(n.Port),
 		"id":   u.UUID,
 		"aid":  "0",
-		"scy":  "auto",
+		"scy":  scy,
 		"net":  netw,
 		"type": "none",
 		"host": sni,
@@ -135,14 +153,24 @@ func buildTrojanConfig(n Node, u User) string {
 	if n.AllowInsecure {
 		params = append(params, "allowInsecure=1")
 	}
-	if netw == "ws" {
+	switch netw {
+	case "ws", "httpupgrade":
 		params = append(params, "path=%2F")
-	}
-	if netw == "grpc" {
+	case "grpc":
 		params = append(params, "mode=gun")
 	}
 	name := url.QueryEscape(n.Name + " - " + u.Email)
 	return fmt.Sprintf("trojan://%s@%s:%d?%s#%s", u.Password, n.Address, n.Port, strings.Join(params, "&"), name)
+}
+
+func buildSSConfig(n Node, u User) string {
+	method := u.SsMethod
+	if method == "" {
+		method = "aes-128-gcm"
+	}
+	userinfo := base64.RawURLEncoding.EncodeToString([]byte(method + ":" + u.Password))
+	name := url.QueryEscape(n.Name + " - " + u.Email)
+	return fmt.Sprintf("ss://%s@%s:%d#%s", userinfo, n.Address, n.Port, name)
 }
 
 func buildUserLinks(n Node, u User) string {
@@ -153,6 +181,8 @@ func buildUserLinks(n Node, u User) string {
 		return buildVmessConfig(n, u)
 	case "trojan":
 		return buildTrojanConfig(n, u)
+	case "ss":
+		return buildSSConfig(n, u)
 	default:
 		return ""
 	}

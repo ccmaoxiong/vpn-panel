@@ -79,9 +79,9 @@ Windows 直接 `go build` 或双击 `start.bat`。
 | 模块 | 说明 |
 |---|---|
 | 仪表盘 | 用户/节点/流量概览、最近操作日志 |
-| 用户管理 | 增删改查、启用禁用、协议 (VLESS/VMess/Trojan)、流量配额、有效期、设备限制、重置流量、重置 UUID |
+| 用户管理 | 增删改查、启用禁用、协议 (VLESS/VMess/Trojan/Shadowsocks)、SS 加密方式、VMess 加密 (scy)、流量配额、有效期、设备限制、重置流量、重置 UUID |
 | 套餐管理 | 流量/时长/价格/设备限制套餐，绑定用户自动填充配额 |
-| 节点管理 | 地址/端口/传输 (TCP/WS/gRPC/mKCP)/安全 (TLS/Reality/None)/SNI/Flow |
+| 节点管理 | 地址/端口/传输 (TCP/WS/HTTPUpgrade/gRPC/mKCP)/安全 (TLS/Reality/None)/SNI/Flow/Reality 参数 (pbk/sid/spx/fp) |
 | 订阅管理 | 每用户独立 Base64 订阅、复制/下载、全部导出 |
 | 流量统计 | 用户流量排行、使用率、流量明细记录 |
 | 操作日志 | 管理员操作审计、IP 记录、一键清空 |
