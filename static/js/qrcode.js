@@ -529,8 +529,8 @@
       }
     },
     setupTypeInfo: function (test, maskPattern) {
-      var data = (this.errorCorrectionLevel << 3) | maskPattern;
-      var key = this.errorCorrectionLevel;
+      var keyByLevel = ["M", "L", "H", "Q"];
+      var key = keyByLevel[this.errorCorrectionLevel] || "M";
       var bits = FORMAT_BITS[key][maskPattern];
       for (var i = 0; i < 15; i++) {
         var mod = !test && bits.charAt(14 - i) === "1";
@@ -579,7 +579,17 @@
     },
   };
 
+  function normalizeLevel(errorCorrectionLevel) {
+    if (typeof errorCorrectionLevel === "string") {
+      var map = { L: QRErrorCorrectLevel.L, M: QRErrorCorrectLevel.M, Q: QRErrorCorrectLevel.Q, H: QRErrorCorrectLevel.H };
+      var v = map[errorCorrectionLevel.toUpperCase()];
+      return v === undefined ? QRErrorCorrectLevel.M : v;
+    }
+    return errorCorrectionLevel;
+  }
+
   function QRCodeFactory(typeNumber, errorCorrectionLevel) {
+    errorCorrectionLevel = normalizeLevel(errorCorrectionLevel);
     if (typeNumber === 0) {
       // 自动选择版本
       return {

@@ -66,10 +66,10 @@ type nodeRequest struct {
 }
 
 type settingsRequest struct {
-	SiteName          string `json:"site_name"`
-	SubDomain         string `json:"sub_domain"`
-	TrafficResetCycle string `json:"traffic_reset_cycle"`
-	NewPassword       string `json:"new_password"`
+	SiteName          *string `json:"site_name"`
+	SubDomain         *string `json:"sub_domain"`
+	TrafficResetCycle *string `json:"traffic_reset_cycle"`
+	NewPassword       string  `json:"new_password"`
 }
 
 func findPlanLocked(d *Data, id int) *Plan {
@@ -691,9 +691,15 @@ func (s *Server) apiSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.db.mu.Lock()
-	s.db.setSettingLocked("site_name", req.SiteName)
-	s.db.setSettingLocked("sub_domain", req.SubDomain)
-	s.db.setSettingLocked("traffic_reset_cycle", req.TrafficResetCycle)
+	if req.SiteName != nil {
+		s.db.setSettingLocked("site_name", *req.SiteName)
+	}
+	if req.SubDomain != nil {
+		s.db.setSettingLocked("sub_domain", *req.SubDomain)
+	}
+	if req.TrafficResetCycle != nil {
+		s.db.setSettingLocked("traffic_reset_cycle", *req.TrafficResetCycle)
+	}
 	if req.NewPassword != "" {
 		if len(req.NewPassword) < 6 {
 			s.db.mu.Unlock()
