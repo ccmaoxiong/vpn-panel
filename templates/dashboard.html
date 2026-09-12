@@ -1,0 +1,113 @@
+{{ define "page_dashboard" }}{{ template "base" . }}{{ end }}
+
+{{ define "content_dashboard" }}
+<div class="page-header">
+  <h2>仪表盘</h2>
+  <div class="header-actions">
+    <button class="btn btn-outline" onclick="recordTraffic()">模拟流量写入</button>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon blue">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    </div>
+    <div class="stat-body">
+      <div class="stat-value">{{ .TotalUsers }}</div>
+      <div class="stat-label">用户总数</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
+    </div>
+    <div class="stat-body">
+      <div class="stat-value">{{ .ActiveUsers }}</div>
+      <div class="stat-label">启用用户</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon purple">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="6" rx="1"/><rect x="9" y="16" width="6" height="6" rx="1"/><rect x="2" y="9" width="6" height="6" rx="1"/><rect x="16" y="9" width="6" height="6" rx="1"/></svg>
+    </div>
+    <div class="stat-body">
+      <div class="stat-value">{{ .TotalNodes }}</div>
+      <div class="stat-label">在线节点</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon orange">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+    </div>
+    <div class="stat-body">
+      <div class="stat-value">{{ fmtBytes .UsedBytes }}</div>
+      <div class="stat-label">总流量消耗</div>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="panel">
+    <div class="panel-header">
+      <h3>今日流量</h3>
+    </div>
+    <div class="panel-body">
+      <div class="big-number">{{ fmtBytes .TodayBytes }}</div>
+      <div class="progress">
+        <div class="progress-bar" style="width: 35%"></div>
+      </div>
+      <div class="muted small">今日通过面板记录的流量</div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-header">
+      <h3>最新用户</h3>
+    </div>
+    <div class="panel-body p-0">
+      <table class="table">
+        <thead><tr><th>邮箱</th><th>协议</th><th>流量</th><th>状态</th></tr></thead>
+        <tbody>
+          {{ range .RecentUsers }}
+          <tr>
+            <td>{{ .Email }}</td>
+            <td><span class="badge badge-{{ .Protocol }}">{{ .Protocol }}</span></td>
+            <td>{{ fmtBytes .UsedBytes }}</td>
+            <td>
+              {{ if .Enabled }}<span class="status-dot on"></span>启用
+              {{ else }}<span class="status-dot off"></span>禁用{{ end }}
+            </td>
+          </tr>
+          {{ else }}
+          <tr><td colspan="4" class="muted center">暂无用户</td></tr>
+          {{ end }}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-header">
+    <h3>最近操作日志</h3>
+  </div>
+  <div class="panel-body p-0">
+    <table class="table">
+      <thead><tr><th>时间</th><th>管理员</th><th>操作</th><th>详情</th><th>IP</th></tr></thead>
+      <tbody>
+        {{ range .RecentLogs }}
+        <tr>
+          <td class="muted">{{ .CreatedAt }}</td>
+          <td>{{ .Admin }}</td>
+          <td><span class="badge badge-gray">{{ .Action }}</span></td>
+          <td>{{ .Detail }}</td>
+          <td class="muted">{{ .IP }}</td>
+        </tr>
+        {{ else }}
+        <tr><td colspan="5" class="muted center">暂无日志</td></tr>
+        {{ end }}
+      </tbody>
+    </table>
+  </div>
+</div>
+{{ end }}

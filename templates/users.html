@@ -1,0 +1,161 @@
+{{ define "page_users" }}{{ template "base" . }}{{ end }}
+
+{{ define "content_users" }}
+<div class="page-header">
+  <h2>用户管理</h2>
+  <div class="header-actions">
+    <input type="text" id="userSearch" class="input search-input" placeholder="搜索邮箱..." onkeyup="filterUsers()">
+    <button class="btn btn-primary" onclick="openUserModal()">+ 添加用户</button>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-body p-0">
+    <table class="table" id="usersTable">
+      <thead>
+        <tr>
+          <th>ID</th><th>邮箱</th><th>协议</th><th>套餐</th>
+          <th>流量 (已用/总额)</th><th>到期时间</th><th>设备限制</th>
+          <th>状态</th><th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{ range .Users }}
+        {{ $p := pct .UsedBytes .TrafficGB }}{{ $w := minInt $p 100 }}
+        <tr data-id="{{ .ID }}" data-email="{{ .Email }}"
+            data-protocol="{{ .Protocol }}" data-plan-id="{{ nz .PlanID }}"
+            data-traffic-gb="{{ .TrafficGB }}" data-device-limit="{{ .DeviceLimit }}"
+            data-enabled="{{ if .Enabled }}1{{ else }}0{{ end }}" data-expire-at="{{ .ExpireAt }}">
+          <td>#{{ .ID }}</td>
+          <td>{{ .Email }}</td>
+          <td><span class="badge badge-{{ .Protocol }}">{{ .Protocol }}</span></td>
+          <td>{{ if .PlanName }}{{ .PlanName }}{{ else }}-{{ end }}</td>
+          <td>
+            <div class="traffic-cell">
+              <div class="progress mini">
+                <div class="progress-bar {{ if gt $p 90 }}danger{{ else if gt $p 70 }}warning{{ end }}" style="width: {{ $w }}%"></div>
+              </div>
+              <span class="small muted">{{ fmtBytes .UsedBytes }} / {{ .TrafficGB }} GB</span>
+            </div>
+          </td>
+          <td>
+            {{ if .ExpireAt }}<span class="{{ if .Expired }}text-danger{{ end }}">{{ .ExpireAt }}</span>
+            {{ else }}<span class="muted">永久</span>{{ end }}
+          </td>
+          <td>{{ if .DeviceLimit }}{{ .DeviceLimit }}{{ else }}不限{{ end }}</td>
+          <td>
+            {{ if .Enabled }}<span class="status-dot on"></span>启用
+            {{ else }}<span class="status-dot off"></span>禁用{{ end }}
+          </td>
+          <td class="actions">
+            <button class="btn-icon" title="查看配置" onclick="openConfig({{ .ID }})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4m0 14v4M4.22 4.22l2.83 2.83m9.9 9.9l2.83 2.83M1 12h4m14 0h4M4.22 19.78l2.83-2.83m9.9-9.9l2.83-2.83"/></svg>
+            </button>
+            <button class="btn-icon" title="编辑" onclick="openUserModal({{ .ID }})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="btn-icon" title="重置流量" onclick="resetTraffic({{ .ID }})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            </button>
+            <button class="btn-icon" title="重置 UUID" onclick="resetUuid({{ .ID }})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 7v10l5-5-5-5z"/></svg>
+            </button>
+            <button class="btn-icon danger" title="删除" onclick="deleteUser({{ .ID }})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            </button>
+          </td>
+        </tr>
+        {{ else }}
+        <tr><td colspan="9" class="muted center">暂无用户，点击右上角添加</td></tr>
+        {{ end }}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 用户创建/编辑弹窗 -->
+<div class="modal-overlay" id="userModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="userModalTitle">添加用户</h3>
+      <button class="btn-icon" onclick="closeModal('userModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="userId">
+      <label>邮箱 *
+        <input type="email" id="userEmail" class="input" placeholder="user@example.com">
+      </label>
+      <div class="form-row">
+        <label>协议
+          <select id="userProtocol" class="input">
+            <option value="vless">VLESS</option>
+            <option value="vmess">VMess</option>
+            <option value="trojan">Trojan</option>
+          </select>
+        </label>
+        <label>套餐
+          <select id="userPlan" class="input">
+            <option value="">不绑定套餐</option>
+            {{ range .Plans }}
+            <option value="{{ .ID }}">{{ .Name }} ({{ .TrafficGB }}GB/{{ .DurationDays }}天)</option>
+            {{ end }}
+          </select>
+        </label>
+      </div>
+      <div class="form-row">
+        <label>流量额度 (GB)
+          <input type="number" id="userTraffic" class="input" value="50" min="0">
+        </label>
+        <label>有效期 (天，0 为永久)
+          <input type="number" id="userDuration" class="input" value="30" min="0">
+        </label>
+      </div>
+      <div class="form-row">
+        <label>设备限制 (0 为不限)
+          <input type="number" id="userDevice" class="input" value="0" min="0">
+        </label>
+        <label>trojan 密码 (可选)
+          <input type="text" id="userPassword" class="input" placeholder="留空自动生成">
+        </label>
+      </div>
+      <label class="checkbox-label">
+        <input type="checkbox" id="userEnabled" checked> 启用该用户
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('userModal')">取消</button>
+      <button class="btn btn-primary" onclick="saveUser()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 配置查看弹窗 -->
+<div class="modal-overlay" id="configModal">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <h3>用户配置</h3>
+      <button class="btn-icon" onclick="closeModal('configModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="config-grid">
+        <div class="qr-wrap">
+          <div id="qrCode" class="qr-box">加载中...</div>
+        </div>
+        <div class="config-info">
+          <div class="info-row"><span class="muted">UUID</span><code id="cfgUuid"></code>
+            <button class="btn-mini" onclick="copyText('cfgUuid')">复制</button></div>
+          <div class="info-row"><span class="muted">密码</span><code id="cfgPassword"></code>
+            <button class="btn-mini" onclick="copyText('cfgPassword')">复制</button></div>
+          <div class="info-row"><span class="muted">协议</span><span id="cfgProtocol" class="badge badge-vless"></span></div>
+          <div class="info-row"><span class="muted">订阅链接</span>
+            <button class="btn-mini" onclick="copySub()">复制订阅</button></div>
+        </div>
+      </div>
+      <div class="links-section">
+        <h4>分享链接 (共 <span id="linkCount">0</span> 个节点)</h4>
+        <div id="configLinks" class="links-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{{ end }}

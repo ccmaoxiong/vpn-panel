@@ -1,0 +1,55 @@
+{{ define "page_settings" }}{{ template "base" . }}{{ end }}
+
+{{ define "content_settings" }}
+<div class="page-header">
+  <h2>系统设置</h2>
+</div>
+
+<div class="grid-2">
+  <div class="panel">
+    <div class="panel-header"><h3>基本设置</h3></div>
+    <div class="panel-body">
+      <label>站点名称
+        <input type="text" id="siteName" class="input" value="{{ index .Settings "site_name" }}">
+      </label>
+      <label>订阅域名 (sub_domain)
+        <input type="text" id="subDomain" class="input" placeholder="sub.example.com" value="{{ index .Settings "sub_domain" }}">
+        <div class="muted small">设置后订阅链接格式为: https://{域名}/sub/{token}</div>
+      </label>
+      <label>流量重置周期
+        <select id="resetCycle" class="input">
+          <option value="monthly" {{ if eq (index .Settings "traffic_reset_cycle") "monthly" }}selected{{ end }}>每月</option>
+          <option value="never" {{ if eq (index .Settings "traffic_reset_cycle") "never" }}selected{{ end }}>从不</option>
+          <option value="weekly" {{ if eq (index .Settings "traffic_reset_cycle") "weekly" }}selected{{ end }}>每周</option>
+        </select>
+      </label>
+      <button class="btn btn-primary" onclick="saveSettings()">保存设置</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><h3>修改管理员密码</h3></div>
+    <div class="panel-body">
+      <label>新密码
+        <input type="password" id="newPassword" class="input" placeholder="至少 6 位">
+      </label>
+      <label>确认新密码
+        <input type="password" id="confirmPassword" class="input" placeholder="再次输入">
+      </label>
+      <button class="btn btn-primary" onclick="changePassword()">修改密码</button>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-header"><h3>关于</h3></div>
+  <div class="panel-body">
+    <div class="about-grid">
+      <div><span class="muted">面板版本</span> v2.0.0 (Go)</div>
+      <div><span class="muted">存储</span> JSON 文件 (data.json)</div>
+      <div><span class="muted">支持协议</span> VLESS / VMess / Trojan</div>
+      <div><span class="muted">默认账号</span> admin / admin123 (请尽快修改)</div>
+    </div>
+  </div>
+</div>
+{{ end }}

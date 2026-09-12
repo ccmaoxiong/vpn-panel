@@ -1,0 +1,117 @@
+{{ define "page_nodes" }}{{ template "base" . }}{{ end }}
+
+{{ define "content_nodes" }}
+<div class="page-header">
+  <h2>节点管理</h2>
+  <div class="header-actions">
+    <button class="btn btn-primary" onclick="openNodeModal()">+ 添加节点</button>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-body p-0">
+    <table class="table">
+      <thead>
+        <tr><th>ID</th><th>名称</th><th>地址</th><th>端口</th><th>传输</th><th>安全</th><th>SNI</th><th>状态</th><th>操作</th></tr>
+      </thead>
+      <tbody>
+        {{ range .Nodes }}
+        <tr data-id="{{ .ID }}" data-name="{{ .Name }}" data-address="{{ .Address }}"
+            data-port="{{ .Port }}" data-network="{{ .Network }}"
+            data-security="{{ .Security }}" data-sni="{{ .SNI }}"
+            data-flow="{{ .Flow }}" data-allow-insecure="{{ if .AllowInsecure }}1{{ else }}0{{ end }}"
+            data-remarks="{{ .Remarks }}" data-enabled="{{ if .Enabled }}1{{ else }}0{{ end }}">
+          <td>#{{ .ID }}</td>
+          <td>{{ .Name }}</td>
+          <td>{{ .Address }}</td>
+          <td>{{ .Port }}</td>
+          <td><span class="badge badge-gray">{{ .Network }}</span></td>
+          <td><span class="badge badge-{{ secBadge .Security }}">{{ .Security }}</span></td>
+          <td class="muted">{{ if .SNI }}{{ .SNI }}{{ else }}-{{ end }}</td>
+          <td>
+            {{ if .Enabled }}<span class="status-dot on"></span>启用
+            {{ else }}<span class="status-dot off"></span>禁用{{ end }}
+          </td>
+          <td class="actions">
+            <button class="btn-icon" title="编辑" onclick="openNodeModal({{ .ID }})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="btn-icon danger" title="删除" onclick="deleteNode({{ .ID }})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            </button>
+          </td>
+        </tr>
+        {{ else }}
+        <tr><td colspan="9" class="muted center">暂无节点</td></tr>
+        {{ end }}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal-overlay" id="nodeModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="nodeModalTitle">添加节点</h3>
+      <button class="btn-icon" onclick="closeModal('nodeModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="nodeId">
+      <div class="form-row">
+        <label>节点名称 *
+          <input type="text" id="nodeName" class="input" placeholder="如: 香港-01">
+        </label>
+        <label>地址 *
+          <input type="text" id="nodeAddress" class="input" placeholder="vpn.example.com">
+        </label>
+      </div>
+      <div class="form-row">
+        <label>端口
+          <input type="number" id="nodePort" class="input" value="443">
+        </label>
+        <label>SNI
+          <input type="text" id="nodeSni" class="input" placeholder="留空使用地址">
+        </label>
+      </div>
+      <div class="form-row">
+        <label>传输方式
+          <select id="nodeNetwork" class="input">
+            <option value="tcp">TCP</option>
+            <option value="ws" selected>WebSocket</option>
+            <option value="grpc">gRPC</option>
+            <option value="kcp">mKCP</option>
+          </select>
+        </label>
+        <label>安全类型
+          <select id="nodeSecurity" class="input">
+            <option value="tls" selected>TLS</option>
+            <option value="reality">Reality</option>
+            <option value="none">None</option>
+          </select>
+        </label>
+      </div>
+      <div class="form-row">
+        <label>Flow (VLESS)
+          <select id="nodeFlow" class="input">
+            <option value="">无</option>
+            <option value="xtls-rprx-vision">xtls-rprx-vision</option>
+          </select>
+        </label>
+        <label>备注
+          <input type="text" id="nodeRemarks" class="input" placeholder="可选">
+        </label>
+      </div>
+      <label class="checkbox-label">
+        <input type="checkbox" id="nodeAllowInsecure"> 允许不安全连接 (allowInsecure)
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="nodeEnabled" checked> 启用该节点
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('nodeModal')">取消</button>
+      <button class="btn btn-primary" onclick="saveNode()">保存</button>
+    </div>
+  </div>
+</div>
+{{ end }}

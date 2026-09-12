@@ -1,0 +1,88 @@
+{{ define "page_plans" }}{{ template "base" . }}{{ end }}
+
+{{ define "content_plans" }}
+<div class="page-header">
+  <h2>套餐管理</h2>
+  <div class="header-actions">
+    <button class="btn btn-primary" onclick="openPlanModal()">+ 添加套餐</button>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-body p-0">
+    <table class="table">
+      <thead>
+        <tr><th>ID</th><th>名称</th><th>流量 (GB)</th><th>时长 (天)</th><th>价格</th><th>设备限制</th><th>用户数</th><th>状态</th><th>操作</th></tr>
+      </thead>
+      <tbody>
+        {{ range .Plans }}
+        <tr data-id="{{ .ID }}" data-name="{{ .Name }}"
+            data-traffic-gb="{{ .TrafficGB }}" data-duration-days="{{ .DurationDays }}"
+            data-price="{{ .Price }}" data-device-limit="{{ .DeviceLimit }}"
+            data-enabled="{{ if .Enabled }}1{{ else }}0{{ end }}">
+          <td>#{{ .ID }}</td>
+          <td>{{ .Name }}</td>
+          <td>{{ .TrafficGB }} GB</td>
+          <td>{{ .DurationDays }} 天</td>
+          <td>¥{{ .Price }}</td>
+          <td>{{ if .DeviceLimit }}{{ .DeviceLimit }}{{ else }}不限{{ end }}</td>
+          <td>{{ .UserCount }}</td>
+          <td>
+            {{ if .Enabled }}<span class="status-dot on"></span>启用
+            {{ else }}<span class="status-dot off"></span>禁用{{ end }}
+          </td>
+          <td class="actions">
+            <button class="btn-icon" title="编辑" onclick="openPlanModal({{ .ID }})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="btn-icon danger" title="删除" onclick="deletePlan({{ .ID }})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            </button>
+          </td>
+        </tr>
+        {{ else }}
+        <tr><td colspan="9" class="muted center">暂无套餐</td></tr>
+        {{ end }}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal-overlay" id="planModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="planModalTitle">添加套餐</h3>
+      <button class="btn-icon" onclick="closeModal('planModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="planId">
+      <label>套餐名称 *
+        <input type="text" id="planName" class="input" placeholder="例如: 高级套餐">
+      </label>
+      <div class="form-row">
+        <label>流量 (GB)
+          <input type="number" id="planTraffic" class="input" value="50" min="1">
+        </label>
+        <label>时长 (天)
+          <input type="number" id="planDuration" class="input" value="30" min="1">
+        </label>
+      </div>
+      <div class="form-row">
+        <label>价格 (元)
+          <input type="number" id="planPrice" class="input" value="0" min="0" step="0.01">
+        </label>
+        <label>设备限制 (0 不限)
+          <input type="number" id="planDevice" class="input" value="0" min="0">
+        </label>
+      </div>
+      <label class="checkbox-label">
+        <input type="checkbox" id="planEnabled" checked> 启用该套餐
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('planModal')">取消</button>
+      <button class="btn btn-primary" onclick="savePlan()">保存</button>
+    </div>
+  </div>
+</div>
+{{ end }}

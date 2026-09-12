@@ -1,0 +1,67 @@
+{{ define "page_traffic" }}{{ template "base" . }}{{ end }}
+
+{{ define "content_traffic" }}
+<div class="page-header">
+  <h2>流量统计</h2>
+  <div class="header-actions">
+    <button class="btn btn-outline" onclick="recordTraffic()">模拟流量写入</button>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-header"><h3>用户流量排行</h3></div>
+  <div class="panel-body p-0">
+    <table class="table">
+      <thead>
+        <tr><th>排名</th><th>用户</th><th>套餐</th><th>已用流量</th><th>总额度</th><th>使用率</th></tr>
+      </thead>
+      <tbody>
+        {{ range $i, $u := .Users }}
+        {{ $p := pct $u.UsedBytes $u.TrafficGB }}
+        <tr>
+          <td>
+            {{ if eq $i 0 }}🥇{{ else if eq $i 1 }}🥈{{ else if eq $i 2 }}🥉{{ else }}{{ inc $i }}{{ end }}
+          </td>
+          <td>{{ $u.Email }}</td>
+          <td>{{ if $u.PlanName }}{{ $u.PlanName }}{{ else }}-{{ end }}</td>
+          <td>{{ fmtBytes $u.UsedBytes }}</td>
+          <td>{{ $u.TrafficGB }} GB</td>
+          <td>
+            <div class="progress mini">
+              <div class="progress-bar {{ if gt $p 90 }}danger{{ else if gt $p 70 }}warning{{ end }}" style="width: {{ minInt $p 100 }}%"></div>
+            </div>
+            <span class="small muted">{{ $p }}%</span>
+          </td>
+        </tr>
+        {{ else }}
+        <tr><td colspan="6" class="muted center">暂无数据</td></tr>
+        {{ end }}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-header"><h3>流量明细 (最近 200 条)</h3></div>
+  <div class="panel-body p-0">
+    <table class="table">
+      <thead>
+        <tr><th>时间</th><th>用户</th><th>上行</th><th>下行</th><th>合计</th></tr>
+      </thead>
+      <tbody>
+        {{ range .TrafficLogs }}
+        <tr>
+          <td class="muted">{{ .RecordedAt }}</td>
+          <td>{{ .Email }}</td>
+          <td class="text-green">{{ fmtBytes .UpBytes }}</td>
+          <td class="text-orange">{{ fmtBytes .DownBytes }}</td>
+          <td>{{ fmtBytes .TotalBytes }}</td>
+        </tr>
+        {{ else }}
+        <tr><td colspan="5" class="muted center">暂无流量记录</td></tr>
+        {{ end }}
+      </tbody>
+    </table>
+  </div>
+</div>
+{{ end }}

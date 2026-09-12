@@ -1,0 +1,67 @@
+{{ define "page_subscriptions" }}{{ template "base" . }}{{ end }}
+
+{{ define "content_subscriptions" }}
+<div class="page-header">
+  <h2>订阅管理</h2>
+  <div class="header-actions">
+    <button class="btn btn-outline" onclick="copyAllSubs()">复制全部订阅 (JSON)</button>
+    <button class="btn btn-primary" onclick="exportAllSubs()">导出全部订阅</button>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-header">
+    <h3>订阅链接</h3>
+    <span class="muted small">
+      {{ if .SubDomain }}
+      订阅域名: {{ .SubDomain }} — 链接格式: https://{{ .SubDomain }}/sub/{token}
+      {{ else }}
+      未设置订阅域名，请在系统设置中配置 sub_domain 以生成完整订阅链接
+      {{ end }}
+    </span>
+  </div>
+  <div class="panel-body p-0">
+    <table class="table">
+      <thead>
+        <tr><th>ID</th><th>用户</th><th>套餐</th><th>Token</th><th>订阅内容 (Base64)</th><th>操作</th></tr>
+      </thead>
+      <tbody>
+        {{ range .Users }}
+        {{ $sub := index $.Subs .ID }}
+        <tr>
+          <td>#{{ .ID }}</td>
+          <td>{{ .Email }}</td>
+          <td>{{ if .PlanName }}{{ .PlanName }}{{ else }}-{{ end }}</td>
+          <td><code class="token">{{ .Token }}</code></td>
+          <td>
+            {{ if and .Enabled $sub }}
+            <code class="sub-preview">{{ subPreview $sub }}...</code>
+            {{ else }}
+            <span class="muted">已禁用</span>
+            {{ end }}
+          </td>
+          <td class="actions">
+            {{ if .Enabled }}
+            <button class="btn-mini" onclick="copySubById({{ .ID }})">复制订阅</button>
+            <button class="btn-mini" onclick="downloadSub({{ .ID }})">下载</button>
+            {{ end }}
+          </td>
+        </tr>
+        {{ end }}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-header"><h3>使用说明</h3></div>
+  <div class="panel-body">
+    <ol class="help-list">
+      <li>每个用户拥有独立的订阅链接: <code>https://{订阅域名}/sub/{token}</code></li>
+      <li>在 Clash / V2rayN / Shadowrocket 等客户端中粘贴订阅链接即可自动导入全部启用节点</li>
+      <li>面板自动根据用户的协议 (vless/vmess/trojan) 生成对应格式的节点配置</li>
+      <li>禁用用户或节点后，其配置会自动从订阅中移除</li>
+    </ol>
+  </div>
+</div>
+{{ end }}

@@ -1,0 +1,33 @@
+{{ define "page_logs" }}{{ template "base" . }}{{ end }}
+
+{{ define "content_logs" }}
+<div class="page-header">
+  <h2>操作日志</h2>
+  <div class="header-actions">
+    <button class="btn btn-outline danger-text" onclick="clearLogs()">清空日志</button>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-body p-0">
+    <table class="table">
+      <thead>
+        <tr><th>时间</th><th>管理员</th><th>操作</th><th>详情</th><th>IP</th></tr>
+      </thead>
+      <tbody>
+        {{ range .Logs }}
+        <tr>
+          <td class="muted">{{ .CreatedAt }}</td>
+          <td>{{ .Admin }}</td>
+          <td><span class="badge badge-gray">{{ .Action }}</span></td>
+          <td>{{ .Detail }}</td>
+          <td class="muted">{{ .IP }}</td>
+        </tr>
+        {{ else }}
+        <tr><td colspan="5" class="muted center">暂无日志</td></tr>
+        {{ end }}
+      </tbody>
+    </table>
+  </div>
+</div>
+{{ end }}
