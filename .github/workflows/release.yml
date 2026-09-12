@@ -2,6 +2,8 @@ name: release
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
   workflow_dispatch:
@@ -43,6 +45,7 @@ jobs:
             -o vpn-panel-${{ matrix.os }}-${{ matrix.arch }}${ext} .
 
       - name: Publish
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

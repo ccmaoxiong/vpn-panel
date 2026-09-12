@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"html/template"
 	"net/http"
+	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
 	"strings"
@@ -20,6 +21,16 @@ func newTestServer(t *testing.T) *Server {
 	s := &Server{db: db, sess: newSessionStore()}
 	s.tmpl = template.Must(template.New("").Funcs(funcMap).ParseFS(webFS, "templates/*.html"))
 	return s
+}
+
+func newClient() *http.Client {
+	jar, _ := cookiejar.New(nil)
+	return &http.Client{
+		Jar: jar,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
 }
 
 func apiReq(t *testing.T, client *http.Client, method, path string, body []byte) map[string]any {
@@ -48,10 +59,7 @@ func TestLoginRequired(t *testing.T) {
 	ts := httptest.NewServer(s.routes())
 	defer ts.Close()
 
-	client := ts.Client()
-	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		return http.ErrUseLastResponse
-	}
+	client := newClient()
 	resp, err := client.Get(ts.URL + "/dashboard")
 	if err != nil {
 		t.Fatal(err)
@@ -71,10 +79,7 @@ func TestLoginAndPages(t *testing.T) {
 	ts := httptest.NewServer(s.routes())
 	defer ts.Close()
 
-	client := ts.Client()
-	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		return http.ErrUseLastResponse
-	}
+	client := newClient()
 
 	// wrong password
 	form := url.Values{"username": {"admin"}, "password": {"wrong"}}
@@ -122,10 +127,7 @@ func TestAPIFlow(t *testing.T) {
 	ts := httptest.NewServer(s.routes())
 	defer ts.Close()
 
-	client := ts.Client()
-	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		return http.ErrUseLastResponse
-	}
+	client := newClient()
 	resp, err := client.PostForm(ts.URL+"/login", url.Values{"username": {"admin"}, "password": {"admin123"}})
 	if err != nil {
 		t.Fatal(err)
